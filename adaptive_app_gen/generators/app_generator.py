@@ -9,6 +9,8 @@ from typing import Dict, Any, Optional
 import logging
 
 from adaptive_app_gen.bedrock_client import BedrockClient
+from adaptive_app_gen.generators.java_generator import JavaProjectGenerator, JavaFileGenerator
+from adaptive_app_gen.generators.python_generator import PythonProjectGenerator, PythonFileGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -140,17 +142,46 @@ class AdaptiveApplicationGenerator:
         return generated_files
     
     def _generate_python_main(self, project_path: Path, spec: Dict[str, Any]) -> str:
-        """Generate Python main file"""
+        """Generate Python main file and package structure"""
+        app_name = spec.get("name", "app").replace("-", "_")
+        
+        # Create package directory
+        package_dir = project_path / app_name
+        package_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate __init__.py
+        init_content = PythonFileGenerator.generate_main_module(spec)
+        init_path = package_dir / "__init__.py"
+        init_path.write_text(init_content)
+        
+        # Generate main.py
         code = self.bedrock.generate_code(spec, file_type="main.py")
-        main_path = project_path / "src" / "main.py"
+        main_path = package_dir / "main.py"
         main_path.write_text(code)
+        
+        # Create core subdirectory
+        core_dir = package_dir / "core"
+        core_dir.mkdir(exist_ok=True)
+        core_init = core_dir / "__init__.py"
+        core_init.write_text('"""Core application functionality"""\n')
+        
         return str(main_path)
     
     def _generate_python_config(self, project_path: Path, spec: Dict[str, Any]) -> str:
         """Generate Python configuration file"""
-        code = self.bedrock.generate_code(spec, file_type="config.py")
-        config_path = project_path / "config" / "config.py"
-        config_path.write_text(code)
+        app_name = spec.get("name", "app").replace("-", "_")
+        package_dir = project_path / app_name
+        
+        # Generate config module
+        config_content = PythonFileGenerator.generate_config_module(spec)
+        config_path = package_dir / "config.py"
+        config_path.write_text(config_content)
+        
+        # Generate CLI module
+        cli_content = PythonFileGenerator.generate_cli_module(spec)
+        cli_path = package_dir / "cli.py"
+        cli_path.write_text(cli_content)
+        
         return str(config_path)
     
     def _generate_js_main(self, project_path: Path, spec: Dict[str, Any]) -> str:
@@ -183,20 +214,31 @@ class AdaptiveApplicationGenerator:
     
     def _generate_java_main(self, project_path: Path, spec: Dict[str, Any]) -> str:
         """Generate Java main application file"""
-        code = self.bedrock.generate_code(spec, file_type="Main.java")
         src_path = project_path / "src" / "main" / "java" / "com" / "app"
         src_path.mkdir(parents=True, exist_ok=True)
-        main_path = src_path / "Main.java"
-        main_path.write_text(code)
+        
+        # Generate main class using template
+        main_code = JavaFileGenerator.generate_main_class(spec)
+        main_path = src_path / "Application.java"
+        main_path.write_text(main_code)
+        
+        # Generate controller
+        controller_code = JavaFileGenerator.generate_controller_class(spec)
+        controller_path = src_path / "MainController.java"
+        controller_path.write_text(controller_code)
+        
         return str(main_path)
     
     def _generate_java_config(self, project_path: Path, spec: Dict[str, Any]) -> str:
         """Generate Java configuration file"""
-        code = self.bedrock.generate_code(spec, file_type="Config.java")
         src_path = project_path / "src" / "main" / "java" / "com" / "app" / "config"
         src_path.mkdir(parents=True, exist_ok=True)
-        config_path = src_path / "Config.java"
-        config_path.write_text(code)
+        
+        # Generate config class using template
+        config_code = JavaFileGenerator.generate_config_class(spec)
+        config_path = src_path / "AppConfig.java"
+        config_path.write_text(config_code)
+        
         return str(config_path)
     
     def _generate_config_files(
@@ -205,15 +247,40 @@ class AdaptiveApplicationGenerator:
         spec: Dict[str, Any],
         tech_stack: str
     ) -> Dict[str, str]:
-        """Generate configuration files (requirements.txt, package.json, etc.)"""
+        """Generate configuration files (requirements.txt, package.json, pom.xml, etc.)"""
         generated_files = {}
         tech_stack_lower = tech_stack.lower()
         
         if tech_stack_lower in ["python", "py"]:
+            # Generate requirements.txt
             requirements_path = project_path / "requirements.txt"
-            dependencies = spec.get("dependencies", [])
-            requirements_path.write_text("\n".join(dependencies))
+            requirements_content = PythonProjectGenerator.generate_requirements_txt(spec)
+            requirements_path.write_text(requirements_content)
             generated_files["requirements.txt"] = str(requirements_path)
+            
+            # Generate setup.py
+            setup_py_path = project_path / "setup.py"
+            setup_py_content = PythonProjectGenerator.generate_setup_py(spec)
+            setup_py_path.write_text(setup_py_content)
+            generated_files["setup.py"] = str(setup_py_path)
+            
+            # Generate pyproject.toml
+            pyproject_path = project_path / "pyproject.toml"
+            pyproject_content = PythonProjectGenerator.generate_pyproject_toml(spec)
+            pyproject_path.write_text(pyproject_content)
+            generated_files["pyproject.toml"] = str(pyproject_path)
+            
+            # Generate tox.ini
+            tox_path = project_path / "tox.ini"
+            tox_content = PythonProjectGenerator.generate_tox_ini(spec)
+            tox_path.write_text(tox_content)
+            generated_files["tox.ini"] = str(tox_path)
+            
+            # Generate .gitignore
+            gitignore_path = project_path / ".gitignore"
+            gitignore_content = PythonProjectGenerator.generate_gitignore()
+            gitignore_path.write_text(gitignore_content)
+            generated_files[".gitignore"] = str(gitignore_path)
             
         elif tech_stack_lower in ["nodejs", "node", "javascript", "js", "typescript", "ts"]:
             package_json_path = project_path / "package.json"
@@ -233,10 +300,19 @@ class AdaptiveApplicationGenerator:
             generated_files["package.json"] = str(package_json_path)
         
         elif tech_stack_lower in ["java"]:
+            # Generate pom.xml
             pom_xml_path = project_path / "pom.xml"
-            pom_xml = self.bedrock.generate_code(spec, file_type="pom.xml")
-            pom_xml_path.write_text(pom_xml)
+            pom_xml_content = JavaProjectGenerator.generate_pom_xml(spec)
+            pom_xml_path.write_text(pom_xml_content)
             generated_files["pom.xml"] = str(pom_xml_path)
+            
+            # Generate application.properties
+            resources_path = project_path / "src" / "main" / "resources"
+            resources_path.mkdir(parents=True, exist_ok=True)
+            props_path = resources_path / "application.properties"
+            props_content = JavaProjectGenerator.generate_application_properties(spec)
+            props_path.write_text(props_content)
+            generated_files["application.properties"] = str(props_path)
         
         return generated_files
     
@@ -251,22 +327,30 @@ class AdaptiveApplicationGenerator:
         tech_stack_lower = tech_stack.lower()
         
         if tech_stack_lower in ["python", "py"]:
-            test_code = self.bedrock.generate_code(spec, file_type="test_main.py")
+            # Generate unit test
+            test_code = PythonFileGenerator.generate_test_file(spec)
             test_path = project_path / "tests" / "test_main.py"
+            test_path.parent.mkdir(parents=True, exist_ok=True)
             test_path.write_text(test_code)
             generated_files["test_main.py"] = str(test_path)
+            
+            # Create __init__.py in tests directory
+            tests_init = test_path.parent / "__init__.py"
+            tests_init.write_text('"""Test suite"""\n')
             
         elif tech_stack_lower in ["nodejs", "node", "javascript", "js", "typescript", "ts"]:
             test_code = self.bedrock.generate_code(spec, file_type="main.test.js")
             test_path = project_path / "tests" / "main.test.js"
+            test_path.parent.mkdir(parents=True, exist_ok=True)
             test_path.write_text(test_code)
             generated_files["main.test.js"] = str(test_path)
         
         elif tech_stack_lower in ["java"]:
-            test_code = self.bedrock.generate_code(spec, file_type="MainTest.java")
-            test_path = project_path / "src" / "test" / "java" / "com" / "app" / "MainTest.java"
+            # Generate JUnit test
+            test_code = JavaFileGenerator.generate_test_class(spec)
+            test_path = project_path / "src" / "test" / "java" / "com" / "app" / "AppTest.java"
             test_path.parent.mkdir(parents=True, exist_ok=True)
             test_path.write_text(test_code)
-            generated_files["MainTest.java"] = str(test_path)
+            generated_files["AppTest.java"] = str(test_path)
         
         return generated_files
