@@ -168,20 +168,45 @@ python_files = ["test_*.py", "*_test.py"]
             "cmath", "decimal", "fractions", "random", "statistics"
         }
         
-        # Filter out built-in modules
+        # Known non-existent packages that Bedrock sometimes generates
+        invalid_packages = {
+            "python-camunda",  # Bedrock generates this, doesn't exist
+            "workflow-engine",  # Not a real package
+            "task-scheduler",   # Not a real package
+            "orchestration-framework",  # Not a real package
+        }
+        
+        # Filter out built-in modules and invalid packages
         filtered_deps = []
         for dep in dependencies:
             # Extract package name (before any version specifiers)
             pkg_name = dep.split(">=")[0].split("==")[0].split("<")[0].split(">")[0].split("~")[0].split("!")[0].strip().lower()
             
-            if pkg_name not in builtin_modules:
+            if pkg_name not in builtin_modules and pkg_name not in invalid_packages:
                 filtered_deps.append(dep)
+        
+        # Always include core FastAPI dependencies for API projects
+        core_deps = {
+            "fastapi",
+            "uvicorn",
+            "pydantic",
+            "python-dotenv",
+            "sqlalchemy",
+            "requests"
+        }
         
         requirements = "# Generated Python Dependencies\n"
         requirements += "# Core Dependencies\n"
         
+        # Add core dependencies first
+        for core_dep in core_deps:
+            requirements += f"{core_dep}\n"
+        
+        # Add any additional filtered dependencies that aren't core
         for dep in filtered_deps:
-            requirements += f"{dep}\n"
+            pkg_name = dep.split(">=")[0].split("==")[0].split("<")[0].split(">")[0].split("~")[0].split("!")[0].strip().lower()
+            if pkg_name not in core_deps:
+                requirements += f"{dep}\n"
         
         requirements += "\n# Development Dependencies\n"
         requirements += "pytest>=7.0\n"
@@ -864,6 +889,80 @@ def validate_string_length(value: str, min_length: int = 0, max_length: Optional
     return True
 '''
         return validators
+    
+    @staticmethod
+    def generate_fastapi_main(spec: Dict[str, Any]) -> str:
+        """Generate main.py for FastAPI applications"""
+        app_name = spec.get("name", "app").replace("-", "_")
+        description = spec.get("description", "API")
+        
+        main = f'''#!/usr/bin/env python3
+"""
+Main application entry point for {app_name}.
+Configures and starts the FastAPI application with all required middleware and routes.
+"""
+import logging
+from typing import Dict, Any
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+
+# Import routes from static generator
+from src.api.routes import router
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="{app_name}",
+    description="{description}",
+    version="1.0.0",
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(router)
+
+# Custom exception handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors"""
+    return JSONResponse(
+        status_code=422,
+        content={{"detail": exc.errors(), "body": exc.body}},
+    )
+
+# Root endpoint
+@app.get("/", tags=["root"])
+async def root() -> Dict[str, str]:
+    """Root endpoint"""
+    return {{"message": "Welcome to {app_name}"}}
+
+# Health check endpoint
+@app.get("/health", tags=["health"])
+async def health() -> Dict[str, str]:
+    """Health check endpoint"""
+    return {{"status": "healthy", "service": "{app_name}"}}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000, log_level="info")
+'''
+        return main
     
     @staticmethod
     def generate_helpers_module() -> str:

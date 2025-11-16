@@ -254,11 +254,10 @@ class AdaptiveApplicationGenerator:
         # Generate utility modules that might be referenced by Bedrock-generated code
         self._generate_utility_modules(src_dir)
         
-        # Generate main.py
-        code = self.bedrock.generate_code(spec, file_type="main.py")
-        code = self._clean_code(code)
+        # Generate main.py using static template (avoid Bedrock import mismatches)
+        main_content = PythonFileGenerator.generate_fastapi_main(spec)
         main_path = package_dir / "main.py"
-        main_path.write_text(code)
+        main_path.write_text(main_content)
         
         return str(main_path)
     
