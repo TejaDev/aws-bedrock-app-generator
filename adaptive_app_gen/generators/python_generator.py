@@ -620,6 +620,8 @@ Allows running the package as: python -m {app_name}
 import sys
 import logging
 from pathlib import Path
+import subprocess
+import importlib
 
 # Add parent directory to sys.path to allow imports from src
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -632,6 +634,64 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Required packages for the application
+REQUIRED_PACKAGES = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "sqlalchemy",
+]
+
+
+def check_and_install_dependencies() -> bool:
+    """
+    Check if required packages are installed.
+    If not, attempt to install them automatically.
+    
+    Returns:
+        True if all dependencies are available, False otherwise
+    """
+    missing_packages = []
+    
+    for package in REQUIRED_PACKAGES:
+        try:
+            importlib.import_module(package)
+        except ImportError:
+            missing_packages.append(package)
+    
+    if not missing_packages:
+        return True
+    
+    logger.warning(f"Missing packages: {{', '.join(missing_packages)}}")
+    logger.info("Attempting to install missing dependencies...")
+    
+    try:
+        # Try to install from requirements.txt
+        requirements_file = Path(__file__).parent.parent / "requirements.txt"
+        if requirements_file.exists():
+            logger.info(f"Installing from {{requirements_file}}...")
+            subprocess.check_call([
+                sys.executable, "-m", "pip", "install", 
+                "-q", "-r", str(requirements_file)
+            ])
+            logger.info("Dependencies installed successfully")
+            return True
+        else:
+            # Fallback: install specific packages
+            logger.info(f"Installing {{', '.join(missing_packages)}}...")
+            subprocess.check_call([
+                sys.executable, "-m", "pip", "install", 
+                "-q"] + missing_packages
+            )
+            logger.info("Dependencies installed successfully")
+            return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to install dependencies: {{e}}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error during dependency installation: {{e}}")
+        return False
+
 
 def main() -> int:
     """
@@ -642,6 +702,11 @@ def main() -> int:
     """
     try:
         logger.info("Starting {app_name}...")
+        
+        # Check and install dependencies if needed
+        if not check_and_install_dependencies():
+            logger.error("Could not resolve dependencies. Please run: pip install -r requirements.txt")
+            return 1
         
         # Import and run the main application
         from .main import app
@@ -901,6 +966,7 @@ def validate_string_length(value: str, min_length: int = 0, max_length: Optional
 Main application entry point for {app_name}.
 Configures and starts the FastAPI application with all required middleware and routes.
 """
+import os
 import logging
 from typing import Dict, Any
 from fastapi import FastAPI, Request
@@ -960,7 +1026,10 @@ async def health() -> Dict[str, str]:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5000, log_level="info")
+    # Get port from environment or use default
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    uvicorn.run(app, host=host, port=port, log_level="info")
 '''
         return main
     
