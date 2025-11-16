@@ -68,7 +68,7 @@ class AdaptiveApplicationGenerator:
         project_path = self.output_dir / app_name
         project_path.mkdir(parents=True, exist_ok=True)
         
-        self._create_project_structure(project_path, spec)
+        self._create_project_structure(project_path, spec, tech_stack)
         
         # Step 3: Generate code files
         logger.info("Step 3: Generating code files...")
@@ -101,17 +101,21 @@ class AdaptiveApplicationGenerator:
         logger.info(f"Successfully generated {app_name}")
         return result
     
-    def _create_project_structure(self, project_path: Path, spec: Dict[str, Any]) -> None:
+    
+    def _create_project_structure(self, project_path: Path, spec: Dict[str, Any], tech_stack: str) -> None:
         """Create the basic project directory structure"""
+        tech_stack_lower = tech_stack.lower()
         directories = spec.get("project_structure", {}).get("directories", ["src", "tests", "config"])
         
         for directory in directories:
             dir_path = project_path / directory
             dir_path.mkdir(parents=True, exist_ok=True)
-            # Create __init__.py for Python packages
-            init_file = dir_path / "__init__.py"
-            if not init_file.exists():
-                init_file.touch()
+            
+            # Only create __init__.py for Python packages
+            if tech_stack_lower in ["python", "py"]:
+                init_file = dir_path / "__init__.py"
+                if not init_file.exists():
+                    init_file.touch()
     
     def _generate_code_files(
         self,
