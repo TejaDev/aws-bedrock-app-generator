@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 CLI interface for Adaptive Application Generator
+Supports both interactive and command-line argument modes
 """
 
 import argparse
@@ -26,6 +27,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  Interactive mode (recommended):
+    python cli.py --interactive
+  
   Generate a Python web application:
     python cli.py --name myapp --requirements "Create a REST API" --type web --stack python
   
@@ -35,14 +39,18 @@ Examples:
     )
     
     parser.add_argument(
+        "--interactive", "-i",
+        action="store_true",
+        help="Run in interactive mode"
+    )
+    
+    parser.add_argument(
         "--name",
-        required=True,
         help="Name of the application to generate"
     )
     
     parser.add_argument(
         "--requirements",
-        required=True,
         help="Application requirements and description"
     )
     
@@ -80,8 +88,27 @@ Examples:
     
     args = parser.parse_args()
     
+    # If interactive mode, import and run the interactive CLI
+    if args.interactive or (not args.name and not args.requirements):
+        try:
+            from interactive_cli import InteractiveCLI
+            cli = InteractiveCLI()
+            return cli.run()
+        except ImportError:
+            logger.error("interactive_cli module not found")
+            sys.exit(1)
+    
+    # Non-interactive mode
     try:
         # Validate inputs
+        if not args.name:
+            logger.error("Application name is required (--name)")
+            sys.exit(1)
+        
+        if not args.requirements:
+            logger.error("Application requirements are required (--requirements)")
+            sys.exit(1)
+        
         if not Config.validate_tech_stack(args.stack):
             logger.error(f"Unsupported tech stack: {args.stack}")
             sys.exit(1)

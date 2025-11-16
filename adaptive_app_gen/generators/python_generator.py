@@ -153,10 +153,34 @@ python_files = ["test_*.py", "*_test.py"]
         """Generate requirements.txt"""
         dependencies = spec.get("dependencies", [])
         
+        # Built-in Python modules that should not be in requirements.txt
+        builtin_modules = {
+            "logging", "sys", "os", "json", "re", "datetime", "time",
+            "collections", "itertools", "functools", "threading", "asyncio",
+            "pathlib", "typing", "enum", "abc", "collections.abc",
+            "unittest", "doctest", "pdb", "traceback", "warnings",
+            "io", "codecs", "pickle", "csv", "configparser", "argparse",
+            "logging.config", "hashlib", "hmac", "secrets", "base64",
+            "urllib", "urllib.parse", "http", "http.client", "email",
+            "socket", "ssl", "select", "signal", "subprocess", "shutil",
+            "tempfile", "glob", "fnmatch", "linecache", "struct", "dis",
+            "inspect", "types", "copy", "pprint", "reprlib", "math",
+            "cmath", "decimal", "fractions", "random", "statistics"
+        }
+        
+        # Filter out built-in modules
+        filtered_deps = []
+        for dep in dependencies:
+            # Extract package name (before any version specifiers)
+            pkg_name = dep.split(">=")[0].split("==")[0].split("<")[0].split(">")[0].split("~")[0].split("!")[0].strip().lower()
+            
+            if pkg_name not in builtin_modules:
+                filtered_deps.append(dep)
+        
         requirements = "# Generated Python Dependencies\n"
         requirements += "# Core Dependencies\n"
         
-        for dep in dependencies:
+        for dep in filtered_deps:
             requirements += f"{dep}\n"
         
         requirements += "\n# Development Dependencies\n"
@@ -556,3 +580,369 @@ def test_config_fixture(config):
     assert hasattr(config, "DEBUG")
 '''
         return test_main
+    
+    @staticmethod
+    def generate_main_entry_point(spec: Dict[str, Any]) -> str:
+        """Generate __main__.py entry point for package execution"""
+        app_name = spec.get("name", "app").replace("-", "_")
+        description = spec.get("description", "")
+        
+        main_entry = f'''"""
+Main entry point for {app_name}
+Allows running the package as: python -m {app_name}
+"""
+
+import sys
+import logging
+from pathlib import Path
+
+# Add parent directory to sys.path to allow imports from src
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+logger = logging.getLogger(__name__)
+
+
+def main() -> int:
+    """
+    Main entry point
+    
+    Returns:
+        Exit code
+    """
+    try:
+        logger.info("Starting {app_name}...")
+        
+        # Import and run the main application
+        from .main import app
+        
+        # Run FastAPI app with uvicorn
+        import uvicorn
+        uvicorn.run(
+            app,
+            host="0.0.0.0",
+            port=5000,
+            log_level="info",
+        )
+        
+        return 0
+    except Exception as e:
+        logger.error(f"Error running application: {{e}}", exc_info=True)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+'''
+        return main_entry
+    
+    @staticmethod
+    def generate_routes_module() -> str:
+        """Generate API routes module"""
+        routes = '''"""
+API routes for the application
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Dict, Any, Optional
+
+router = APIRouter()
+
+
+@router.get("/health", tags=["health"])
+async def health_check() -> Dict[str, Any]:
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "api"
+    }
+
+
+@router.get("/", tags=["root"])
+async def root() -> Dict[str, str]:
+    """Root endpoint"""
+    return {"message": "Welcome to the API"}
+'''
+        return routes
+    
+    @staticmethod
+    def generate_jwt_middleware_module() -> str:
+        """Generate JWT middleware module"""
+        middleware = '''"""
+JWT authentication middleware
+"""
+
+from fastapi import Request, HTTPException, status
+from starlette.middleware.base import BaseHTTPMiddleware
+from typing import Callable, Awaitable
+
+
+class JWTMiddleware(BaseHTTPMiddleware):
+    """JWT authentication middleware"""
+    
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable]) -> Awaitable:
+        """Process request with JWT validation"""
+        # Skip authentication for health checks and docs
+        skip_paths = ["/health", "/docs", "/openapi.json", "/"]
+        if any(request.url.path.startswith(path) for path in skip_paths):
+            return await call_next(request)
+        
+        # TODO: Implement JWT validation
+        response = await call_next(request)
+        return response
+'''
+        return middleware
+    
+    @staticmethod
+    def generate_exceptions_module() -> str:
+        """Generate custom exceptions module"""
+        exceptions = '''"""
+Custom exception classes
+"""
+
+
+class AuthenticationError(Exception):
+    """Raised when authentication fails"""
+    pass
+
+
+class AuthorizationError(Exception):
+    """Raised when authorization fails"""
+    pass
+
+
+class ValidationError(Exception):
+    """Raised when validation fails"""
+    pass
+
+
+class NotFoundError(Exception):
+    """Raised when resource is not found"""
+    pass
+'''
+        return exceptions
+    
+    @staticmethod
+    def generate_database_module() -> str:
+        """Generate database module"""
+        database = '''"""
+Database models and initialization
+"""
+
+from typing import AsyncGenerator, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+async def init_db() -> None:
+    """Initialize database connection"""
+    logger.info("Initializing database...")
+    # TODO: Implement database initialization
+    pass
+
+
+async def close_db() -> None:
+    """Close database connection"""
+    logger.info("Closing database connection...")
+    # TODO: Implement database cleanup
+    pass
+
+
+async def get_db() -> AsyncGenerator:
+    """Database session dependency"""
+    # TODO: Implement database session management
+    yield
+'''
+        return database
+    
+    @staticmethod
+    def generate_logger_module() -> str:
+        """Generate logging utilities module"""
+        logger_module = '''"""
+Logging utilities for the application
+"""
+
+import logging
+from typing import Optional
+
+
+def setup_logging(level: Optional[str] = None) -> logging.Logger:
+    """
+    Setup and configure logging
+    
+    Args:
+        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        
+    Returns:
+        Configured logger instance
+    """
+    level = level or logging.INFO
+    
+    # Create logger
+    logger = logging.getLogger(__name__)
+    logger.setLevel(level)
+    
+    # Create console handler
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    handler.setFormatter(formatter)
+    
+    # Add handler to logger
+    if not logger.handlers:
+        logger.addHandler(handler)
+    
+    return logger
+'''
+        return logger_module
+    
+    @staticmethod
+    def generate_validators_module() -> str:
+        """Generate data validators module"""
+        validators = '''"""
+Data validation utilities
+"""
+
+import re
+from typing import Any, Dict, List, Optional
+
+
+def validate_email(email: str) -> bool:
+    """
+    Validate email address format
+    
+    Args:
+        email: Email address to validate
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+
+def validate_required_fields(data: Dict[str, Any], required_fields: List[str]) -> bool:
+    """
+    Validate that required fields are present
+    
+    Args:
+        data: Dictionary to validate
+        required_fields: List of required field names
+        
+    Returns:
+        True if all required fields present, False otherwise
+    """
+    return all(field in data and data[field] is not None for field in required_fields)
+
+
+def validate_string_length(value: str, min_length: int = 0, max_length: Optional[int] = None) -> bool:
+    """
+    Validate string length
+    
+    Args:
+        value: String to validate
+        min_length: Minimum length
+        max_length: Maximum length (None for unlimited)
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    if len(value) < min_length:
+        return False
+    if max_length and len(value) > max_length:
+        return False
+    return True
+'''
+        return validators
+    
+    @staticmethod
+    def generate_helpers_module() -> str:
+        """Generate helper functions module"""
+        helpers = '''"""
+Helper utilities and common functions
+"""
+
+from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
+
+
+def get_current_timestamp() -> str:
+    """Get current timestamp as ISO format string"""
+    return datetime.utcnow().isoformat()
+
+
+def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
+    """
+    Parse ISO format timestamp string
+    
+    Args:
+        timestamp_str: ISO format timestamp string
+        
+    Returns:
+        datetime object or None if parsing fails
+    """
+    try:
+        return datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+    except (ValueError, AttributeError):
+        return None
+
+
+def get_time_difference(start_time: datetime, end_time: datetime) -> timedelta:
+    """
+    Get time difference between two datetime objects
+    
+    Args:
+        start_time: Start datetime
+        end_time: End datetime
+        
+    Returns:
+        timedelta object representing the difference
+    """
+    return end_time - start_time
+
+
+def dict_to_lowercase_keys(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert all dictionary keys to lowercase
+    
+    Args:
+        data: Dictionary to convert
+        
+    Returns:
+        New dictionary with lowercase keys
+    """
+    return {k.lower(): v for k, v in data.items()}
+
+
+def flatten_dict(data: Dict[str, Any], parent_key: str = '', sep: str = '.') -> Dict[str, Any]:
+    """
+    Flatten nested dictionary
+    
+    Args:
+        data: Dictionary to flatten
+        parent_key: Parent key for nested items
+        sep: Separator for nested keys
+        
+    Returns:
+        Flattened dictionary
+    """
+    items = []
+    for k, v in data.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+'''
+        return helpers

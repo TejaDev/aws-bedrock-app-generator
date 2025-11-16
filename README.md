@@ -1,347 +1,342 @@
-# Adaptive Application Generator using AWS Bedrock
+# Adaptive Application Generator
 
-A powerful tool that demonstrates **Adaptive Application Generation** - automatically generating complete application projects based on user requirements using AWS Bedrock and Claude AI models.
+Generate production-ready applications using AWS Bedrock and Claude AI.
 
-## 🎯 Features
+## Quick Start
 
-- **Intelligent Application Generation**: Create full application structures with code and configuration
-- **Multi-Tech Stack Support**: Generate applications in Python, Node.js, TypeScript, and JavaScript
-- **Adaptive Architecture**: Automatically adapts generated code to different application types (web, API, CLI, backend, etc.)
-- **Complete Project Structure**: Generates organized directory layouts, configuration files, and dependencies
-- **Test Generation**: Automatically creates test files for your generated applications
-- **AWS Bedrock Integration**: Uses Claude 3.5 Sonnet for high-quality code generation
-- **CLI and Programmatic Interfaces**: Use via command-line or import as a Python module
+```bash
+# Interactive mode (recommended)
+python3 generate.py
 
-## 🏗️ Project Structure
+# Or use CLI directly
+python3 cli.py --name myapp --requirements "REST API for task management" --type api --stack python
+```
+
+## Installation
+
+```bash
+pip3 install -r requirements.txt
+aws configure  # Configure AWS credentials
+```
+
+## Features
+
+- ✅ Intelligent code generation with Claude 3.5 Sonnet
+- ✅ Multi-stack support: Python, Node.js, TypeScript, Java
+- ✅ Multiple app types: Web, API, CLI, Backend
+- ✅ Auto-generated tests and configuration
+- ✅ Complete project structures
+- ✅ AWS Bedrock integration
+
+## Supported Tech
+
+| Type | Options |
+|------|---------|
+| **Languages** | Python, Node.js, TypeScript, JavaScript |
+| **App Types** | web, api, cli, backend, desktop, mobile |
+
+## CLI Usage
+
+```bash
+python3 cli.py \
+  --name my_app \
+  --requirements "Application description" \
+  --type api \
+  --stack python
+```
+
+### Options
+- `--name` - Application name (required in CLI mode)
+- `--requirements` - App description (required in CLI mode)
+- `--type` - App type: web, api, cli, backend, desktop, mobile (default: web)
+- `--stack` - Tech stack: python, nodejs, typescript, javascript (default: python)
+- `--output-dir` - Output directory (default: ./generated_apps)
+- `--no-tests` - Skip test generation
+- `--region` - AWS region (default: us-east-1)
+
+## After Generation
+
+```bash
+cd generated_apps/your-app
+./setup.sh          # Install dependencies
+python -m your_app  # Run the app
+```
+
+## Documentation
+
+- **GET_STARTED.md** - Quick start and setup
+- **QUICK_REFERENCE.md** - Commands and examples
+- **IMPLEMENTATION_GUIDE.md** - Technical architecture
+- **GENERATOR_ENHANCEMENTS.md** - Enhancement details
+- **README.md Appendices** - Deployment, throttling, and environments
+
+## Prerequisites
+
+- Python 3.9+
+- AWS Account with Bedrock access
+- AWS credentials configured
+
+## Architecture
 
 ```
 adaptive_app_gen/
-├── __init__.py                 # Package initialization
-├── bedrock_client.py          # AWS Bedrock client wrapper
+├── bedrock_client.py       # AWS Bedrock integration
 ├── generators/
-│   ├── __init__.py
-│   └── app_generator.py       # Main application generator
+│   ├── app_generator.py    # Main orchestrator
+│   ├── python_generator.py # Python-specific generation
+│   └── java_generator.py   # Java-specific generation
 └── utils/
-    ├── __init__.py
-    ├── config.py              # Configuration management
-    └── templates/             # Template files (for future expansion)
-
-cli.py                          # Command-line interface
-example_usage.py               # Example demonstrations
-requirements.txt               # Python dependencies
+    └── config.py           # Configuration
 ```
 
-## 📦 Installation
+## Generated Project Structure
 
-### Prerequisites
-- Python 3.9+
-- AWS Account with Bedrock access
-- AWS credentials configured (via AWS CLI or environment variables)
+```
+your_app/
+├── src/
+│   ├── api/               # API routes
+│   ├── middleware/        # Custom middleware
+│   ├── models/           # Data models
+│   ├── services/         # Business logic
+│   └── utils/            # Utilities (logger, validators, helpers)
+├── config/               # Configuration files
+├── tests/                # Test files
+├── requirements.txt      # Python dependencies
+└── APP_SPECIFICATION.json # Generated specification
+```
 
-### Setup
+## Examples
 
-1. **Clone or download the project** to your machine
-
-2. **Install dependencies**:
-   ```bash
-   pip3 install -r requirements.txt
-   ```
-
-3. **Configure AWS Credentials**:
-   ```bash
-   aws configure
-   ```
-   Or set environment variables:
-   ```bash
-   export AWS_ACCESS_KEY_ID=your_key
-   export AWS_SECRET_ACCESS_KEY=your_secret
-   export AWS_REGION=us-east-1
-   ```
-
-## 🚀 Quick Start
-
-### Using the CLI
-
-Generate a Python REST API:
+### Python REST API
 ```bash
-python3 cli.py \
-  --name my_task_api \
-  --requirements "Create a REST API for task management with CRUD operations" \
-  --type api \
-  --stack python
+python3 generate.py
+# Select: api → python → describe requirements
 ```
 
-Generate a Node.js CLI tool:
-```bash
-python3 cli.py \
-  --name data_processor \
-  --requirements "Create a CLI tool for processing CSV files" \
-  --type cli \
-  --stack nodejs
-```
-
-### Using the Python API
-
-```python
-from adaptive_app_gen.generators import AdaptiveApplicationGenerator
-
-# Initialize generator
-generator = AdaptiveApplicationGenerator(output_dir="./my_apps")
-
-# Generate an application
-result = generator.generate_application(
-    app_name="my_app",
-    requirements="Create a REST API with authentication",
-    app_type="api",
-    tech_stack="python",
-    include_tests=True
-)
-
-print(f"App generated at: {result['project_path']}")
-```
-
-## 📋 Supported Tech Stacks
-
-- **Python**: FastAPI, Django, Flask, etc.
-- **Node.js**: Express, NestJS, etc.
-- **TypeScript**: Full TypeScript support for modern applications
-- **JavaScript**: Modern ES6+ JavaScript
-
-## 🎨 Supported Application Types
-
-- **web**: Web applications and frontends
-- **api**: REST APIs and services
-- **cli**: Command-line tools and utilities
-- **backend**: Backend services and microservices
-- **desktop**: Desktop applications
-- **mobile**: Mobile applications (React Native, Flutter)
-
-## 🔧 CLI Options
-
-```
-usage: cli.py [-h] --name NAME --requirements REQUIREMENTS 
-              [--type {web,cli,api,desktop,mobile,backend}]
-              [--stack {python,nodejs,typescript,javascript}]
-              [--output-dir OUTPUT_DIR] [--no-tests] [--region REGION]
-
-options:
-  --name NAME              Name of the application
-  --requirements REQUIREMENTS
-                          Application requirements and description
-  --type {web,...}        Application type (default: web)
-  --stack {python,...}    Technology stack (default: python)
-  --output-dir DIR        Output directory (default: ./generated_apps)
-  --no-tests             Skip generating test files
-  --region REGION        AWS region (default: us-east-1)
-```
-
-## 📝 Examples
-
-### Example 1: Python API
-```bash
-python3 cli.py \
-  --name task_manager_api \
-  --requirements "REST API with user authentication, task CRUD, categories, and filtering" \
-  --type api \
-  --stack python
-```
-
-### Example 2: Node.js CLI
+### Node.js CLI Tool
 ```bash
 python3 cli.py \
   --name csv_processor \
-  --requirements "CLI tool for CSV transformation, validation, and export to JSON/XML" \
+  --requirements "CLI tool for CSV processing and conversion" \
   --type cli \
   --stack nodejs
 ```
 
-### Example 3: TypeScript Web App
+### TypeScript Web App
 ```bash
 python3 cli.py \
   --name dashboard \
-  --requirements "Real-time dashboard with charts, authentication, and theme support" \
+  --requirements "Real-time dashboard with authentication" \
   --type web \
   --stack typescript
 ```
 
-### Run Multiple Examples
-```bash
-python3 example_usage.py
-```
+## Troubleshooting
 
-## 🏃 Running Generated Applications
-
-Each generated application includes:
-1. **Main entry point** (main.py, main.js, etc.)
-2. **Configuration files** (config.py, package.json, etc.)
-3. **Dependencies** (requirements.txt, package.json)
-4. **Test files** (tests/ directory with sample tests)
-5. **Project structure** organized by feature/component
-
-To run a generated application:
-
-**Python**:
-```bash
-cd generated_apps/my_app
-pip install -r requirements.txt
-python src/main.py
-```
-
-**Node.js/TypeScript**:
-```bash
-cd generated_apps/my_app
-npm install
-npm start
-```
-
-## 🔐 AWS Bedrock Configuration
-
-### Available Models
-- **Claude 3.5 Sonnet** (default): Best quality, suitable for complex applications
-- **Claude 3.5 Haiku**: Cost-effective, suitable for simpler applications
-
-### Setting Model
-```bash
-export AWS_BEDROCK_MODEL=claude-3-5-haiku-20241022
-```
-
-Or pass as parameter:
-```python
-generator = AdaptiveApplicationGenerator(region="us-east-1")
-# The model is configurable in bedrock_client.py
-```
-
-## 🎓 How It Works
-
-### Generation Process
-
-1. **Requirements Analysis**: Parses your application requirements
-2. **Specification Generation**: Claude generates detailed application specification (JSON)
-3. **Project Structure Creation**: Creates organized directory layout
-4. **Code Generation**: Generates main application files with Claude
-5. **Configuration**: Creates config files and dependency lists
-6. **Test Generation** (optional): Creates test files for verification
-7. **Specification Export**: Saves the generated specification for reference
-
-### What Gets Generated
-
-- ✅ Main application code
-- ✅ Configuration files
-- ✅ Dependency manifests (requirements.txt, package.json)
-- ✅ Project structure (src/, config/, tests/)
-- ✅ Test files (if enabled)
-- ✅ Application specification (JSON)
-
-## 📊 Example Output
-
-```
-generated_apps/
-└── my_task_api/
-    ├── src/
-    │   ├── __init__.py
-    │   └── main.py                    # Generated main application
-    ├── config/
-    │   ├── __init__.py
-    │   └── config.py                  # Generated configuration
-    ├── tests/
-    │   ├── __init__.py
-    │   └── test_main.py               # Generated tests
-    ├── requirements.txt               # Generated dependencies
-    ├── APP_SPECIFICATION.json         # Generated specification
-    └── [other generated files]
-```
-
-## 🔍 Troubleshooting
-
-### AWS Bedrock Access Error
-- Ensure AWS credentials are configured: `aws configure`
-- Check region has Bedrock enabled
+**AWS Bedrock Access Error**
+- Run `aws configure` to set up credentials
 - Verify IAM permissions for bedrock-runtime
+- Check that Bedrock is available in your region
 
-### Import Errors
-- Ensure you're running from the project root directory
-- Install dependencies: `pip3 install -r requirements.txt`
+**Import Errors in Generated App**
+- Run `./setup.sh` in the generated app directory
 - Verify Python 3.9+ is being used
+- Check that all dependencies installed correctly
 
-### Generation Errors
-- Check that requirements are descriptive enough
-- Ensure AWS credentials are valid
-- Check AWS Bedrock quota/rate limits
+**Generation Fails**
+- Ensure requirements are descriptive
+- Check AWS Bedrock quota limits
+- Verify AWS credentials are valid
 
-## 🚀 Advanced Usage
+## Use Cases
 
-### Custom Output Directory
-```bash
-python3 cli.py \
-  --name my_app \
-  --requirements "My app requirements" \
-  --output-dir /path/to/custom/dir
-```
+- 🚀 Rapid prototyping and MVP development
+- 📚 Learning AI-generated code patterns
+- 📋 Bootstrap new projects with full structure
+- 🔍 Technology exploration and comparison
+- 👥 Team onboarding with consistent templates
+- ✨ Proof of concepts for presentations
 
-### Skip Tests
-```bash
-python3 cli.py \
-  --name my_app \
-  --requirements "My app requirements" \
-  --no-tests
-```
+## License
 
-### Specify AWS Region
-```bash
-python3 cli.py \
-  --name my_app \
-  --requirements "My app requirements" \
-  --region us-west-2
-```
-
-## 📚 API Reference
-
-### AdaptiveApplicationGenerator
-
-```python
-generator = AdaptiveApplicationGenerator(
-    output_dir: str = "./generated_apps",
-    region: str = "us-east-1"
-)
-
-result = generator.generate_application(
-    requirements: str,           # Application requirements
-    app_name: str,              # Name of the app
-    app_type: str = "web",      # Type of app
-    tech_stack: str = "python", # Technology stack
-    include_tests: bool = True  # Generate tests
-)
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Some areas for enhancement:
-- Additional tech stacks (Go, Rust, Java, etc.)
-- More sophisticated application types
-- Improved code generation templates
-- Database schema generation
-- API documentation generation
-- Docker support
-
-## 📄 License
-
-This project demonstrates adaptive application generation using AWS Bedrock and is provided as-is.
-
-## 🔗 Resources
-
-- [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/)
-- [Claude API Documentation](https://docs.anthropic.com/)
-- [AWS CLI Configuration](https://docs.aws.amazon.com/cli/latest/userguide/configure-quickstart.html)
-
-## 💡 Use Cases
-
-- **Rapid Prototyping**: Quickly generate project structure for new ideas
-- **Learning Tool**: Study AI-generated code patterns and best practices
-- **Project Templates**: Bootstrap new projects with full structure
-- **Technology Exploration**: Try new tech stacks without manual setup
-- **Team Onboarding**: Generate consistent project structures for teams
-- **Proof of Concepts**: Rapidly build POCs for client presentations
+MIT
 
 ---
 
-**Built with ❤️ using AWS Bedrock and Claude AI**
+**Built with AWS Bedrock and Claude AI**
+
+---
+
+## Appendix: Deployment & Portability
+
+### Local Setup
+
+**macOS/Linux:**
+```bash
+chmod +x setup.sh && ./setup.sh
+```
+
+**Windows:**
+```bash
+setup.bat
+```
+
+### Docker Deployment
+
+```bash
+# Build image
+docker build -t bedrock-generator:latest .
+
+# Run with credentials
+docker run -it \
+  -v ~/.aws/credentials:/root/.aws/credentials:ro \
+  -v $(pwd)/generated_apps:/app/generated_apps \
+  -e AWS_REGION=us-east-1 \
+  bedrock-generator:latest \
+  python cli.py --name myapp --requirements "..." --stack python
+```
+
+### Docker Compose
+
+```bash
+docker-compose up -d app-generator
+docker-compose exec app-generator python cli.py --name myapp --requirements "..." --stack python
+```
+
+### AWS Deployment
+
+**EC2:**
+```bash
+git clone <repo>
+cd aws-bedrock-app-generator
+./setup.sh
+aws configure
+python3 cli.py --name myapp --requirements "..." --stack python
+```
+
+### AWS Credentials
+
+```bash
+# Configure locally
+aws configure
+
+# Or set environment variables
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+export AWS_REGION=us-east-1
+
+# Verify connection
+aws bedrock list-foundation-models --region us-east-1
+```
+
+### System Requirements
+
+| Minimum | Recommended |
+|---------|-------------|
+| Python 3.9+ | Python 3.11+ |
+| 2 GB RAM | 4 GB RAM |
+| 500 MB disk | 2+ GB disk |
+| macOS/Linux/Windows | Any (Docker for teams) |
+
+### Troubleshooting Deployment
+
+**AWS credentials error:**
+```bash
+aws sts get-caller-identity  # Verify credentials
+cat ~/.aws/credentials        # Check credential file
+```
+
+**Virtual environment issues:**
+```bash
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Docker permission denied:**
+```bash
+sudo usermod -aG docker $USER  # macOS/Linux
+# Windows: Run Docker Desktop as admin
+```
+
+---
+
+## Appendix: Throttling & Performance
+
+### Understanding Throttling
+
+AWS Bedrock has rate limits on API calls. When you exceed them, requests are temporarily throttled. This is **normal and expected** behavior.
+
+**Automatic handling:**
+- ✅ Retries enabled (up to 3 attempts)
+- ✅ Exponential backoff (2s, 4s, 8s delays)
+- ✅ Transparent to users (logged as warnings)
+
+### Best Practices
+
+1. **Generate apps sequentially** - one at a time
+2. **Wait for completion** - before starting next
+3. **Add delays** - 30-60 seconds between generations
+4. **Monitor logs** - "Throttled" warnings are normal
+
+### Example Batch Generation
+
+```bash
+# Generate multiple apps with delays
+python3 cli.py --name app1 --requirements "..." --stack java
+sleep 30
+python3 cli.py --name app2 --requirements "..." --stack java
+sleep 30
+python3 cli.py --name app3 --requirements "..." --stack java
+```
+
+### Typical Generation Times
+
+- Simple API: 2-3 minutes
+- Complex backend: 3-5 minutes
+- With throttling: Add 10-20 seconds
+
+### If Throttling Persists
+
+1. **Use a different model** - Switch to Claude Haiku (faster, higher limits)
+   ```bash
+   export AWS_BEDROCK_MODEL=us.anthropic.claude-3-5-haiku-20241022-v1:0
+   ```
+
+2. **Request higher limits** - Contact AWS Support via AWS Console → Bedrock → Usage Quotas
+
+3. **Increase inter-call delays** - Modify `bedrock_client.py` to add longer delays
+
+### Monitoring
+
+Check logs for throttling messages (normal behavior):
+```
+WARNING - Throttled. Retrying in 2s... (attempt 1/3)
+WARNING - Throttled. Retrying in 4s... (attempt 2/3)
+INFO - Successfully generated content from Bedrock
+```
+
+---
+
+## Environment Variables
+
+```bash
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_PROFILE=default
+AWS_BEDROCK_MODEL=us.anthropic.claude-3-5-sonnet-20241022-v2:0
+
+# Application
+OUTPUT_DIR=./generated_apps
+LOG_LEVEL=INFO
+DEBUG=false
+
+# Generation
+MAX_TOKENS=2048
+TEMPERATURE=0.7
+```
+
+---
+
+**Last Updated:** November 15, 2025

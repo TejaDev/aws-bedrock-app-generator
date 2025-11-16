@@ -4,6 +4,8 @@ Application generator for creating adaptive applications
 
 import os
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
@@ -30,6 +32,39 @@ class AdaptiveApplicationGenerator:
         self.bedrock = BedrockClient(region=region)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Initialized AdaptiveApplicationGenerator with output dir: {output_dir}")
+    
+    @staticmethod
+    def _clean_code(code: str) -> str:
+        """
+        Remove markdown code block markers from generated code
+        
+        Args:
+            code: Generated code that may contain markdown formatting
+            
+        Returns:
+            Cleaned code without markdown markers
+        """
+        # Remove markdown code block markers
+        if code.startswith('```'):
+            # Find the language identifier line
+            lines = code.split('\n')
+            start_idx = 0
+            
+            # Skip opening markdown blocks
+            while start_idx < len(lines) and lines[start_idx].strip().startswith('```'):
+                start_idx += 1
+                # Skip language identifier if present
+                if start_idx < len(lines) and lines[start_idx].strip() in ['python', 'py', 'javascript', 'js', 'typescript', 'ts', 'java']:
+                    start_idx += 1
+            
+            # Remove closing markdown block
+            end_idx = len(lines)
+            while end_idx > start_idx and lines[end_idx - 1].strip().startswith('```'):
+                end_idx -= 1
+            
+            code = '\n'.join(lines[start_idx:end_idx])
+        
+        return code.strip()
     
     def generate_application(
         self,
@@ -84,7 +119,18 @@ class AdaptiveApplicationGenerator:
             test_files = self._generate_test_files(project_path, spec, tech_stack)
             generated_files.update(test_files)
         
-        # Step 6: Save specification
+        # Step 6: Generate setup scripts and virtual environment
+        logger.info("Step 6: Generating setup scripts...")
+        setup_files = self._generate_setup_scripts(project_path, spec, tech_stack)
+        generated_files.update(setup_files)
+        
+        # Step 7: Create virtual environment (Python only)
+        if tech_stack.lower() in ["python", "py"]:
+            logger.info("Step 7: Creating virtual environment...")
+            venv_path = project_path / "venv"
+            self._create_venv(venv_path)
+        
+        # Step 8: Save specification
         spec_path = project_path / "APP_SPECIFICATION.json"
         with open(spec_path, "w") as f:
             json.dump(spec, f, indent=2)
@@ -158,10 +204,46 @@ class AdaptiveApplicationGenerator:
         init_path = package_dir / "__init__.py"
         init_path.write_text(init_content)
         
-        # Generate main.py
-        code = self.bedrock.generate_code(spec, file_type="main.py")
-        main_path = package_dir / "main.py"
-        main_path.write_text(code)
+        # Generate __main__.py (for python -m execution)
+        main_entry_content = PythonFileGenerator.generate_main_entry_point(spec)
+        main_entry_path = package_dir / "__main__.py"
+        main_entry_path.write_text(main_entry_content)
+        
+        # Create src directory structure for imports
+        src_dir = project_path / "src"
+        src_dir.mkdir(exist_ok=True)
+        
+        # Create src/__init__.py
+        src_init = src_dir / "__init__.py"
+        src_init.write_text('"""Source code package"""\n')
+        
+        # Create API module
+        api_dir = src_dir / "api"
+        api_dir.mkdir(exist_ok=True)
+        (api_dir / "__init__.py").write_text('"""API module"""\n')
+        routes_content = PythonFileGenerator.generate_routes_module()
+        (api_dir / "routes.py").write_text(routes_content)
+        
+        # Create middleware module
+        middleware_dir = src_dir / "middleware"
+        middleware_dir.mkdir(exist_ok=True)
+        (middleware_dir / "__init__.py").write_text('"""Middleware module"""\n')
+        jwt_middleware_content = PythonFileGenerator.generate_jwt_middleware_module()
+        (middleware_dir / "jwt_middleware.py").write_text(jwt_middleware_content)
+        
+        # Create utils module
+        utils_dir = src_dir / "utils"
+        utils_dir.mkdir(exist_ok=True)
+        (utils_dir / "__init__.py").write_text('"""Utilities module"""\n')
+        exceptions_content = PythonFileGenerator.generate_exceptions_module()
+        (utils_dir / "exceptions.py").write_text(exceptions_content)
+        
+        # Create models module
+        models_dir = src_dir / "models"
+        models_dir.mkdir(exist_ok=True)
+        (models_dir / "__init__.py").write_text('"""Database models module"""\n')
+        database_content = PythonFileGenerator.generate_database_module()
+        (models_dir / "database.py").write_text(database_content)
         
         # Create core subdirectory
         core_dir = package_dir / "core"
@@ -169,7 +251,38 @@ class AdaptiveApplicationGenerator:
         core_init = core_dir / "__init__.py"
         core_init.write_text('"""Core application functionality"""\n')
         
+        # Generate utility modules that might be referenced by Bedrock-generated code
+        self._generate_utility_modules(src_dir)
+        
+        # Generate main.py
+        code = self.bedrock.generate_code(spec, file_type="main.py")
+        code = self._clean_code(code)
+        main_path = package_dir / "main.py"
+        main_path.write_text(code)
+        
         return str(main_path)
+    
+    def _generate_utility_modules(self, src_dir: Path) -> None:
+        """Generate comprehensive utility modules for common use cases"""
+        utils_dir = src_dir / "utils"
+        
+        # Add logger module if not present
+        logger_path = utils_dir / "logger.py"
+        if not logger_path.exists():
+            logger_content = PythonFileGenerator.generate_logger_module()
+            logger_path.write_text(logger_content)
+        
+        # Add validators module if not present
+        validators_path = utils_dir / "validators.py"
+        if not validators_path.exists():
+            validators_content = PythonFileGenerator.generate_validators_module()
+            validators_path.write_text(validators_content)
+        
+        # Add helpers module if not present
+        helpers_path = utils_dir / "helpers.py"
+        if not helpers_path.exists():
+            helpers_content = PythonFileGenerator.generate_helpers_module()
+            helpers_path.write_text(helpers_content)
     
     def _generate_python_config(self, project_path: Path, spec: Dict[str, Any]) -> str:
         """Generate Python configuration file"""
@@ -191,6 +304,7 @@ class AdaptiveApplicationGenerator:
     def _generate_js_main(self, project_path: Path, spec: Dict[str, Any]) -> str:
         """Generate JavaScript main file"""
         code = self.bedrock.generate_code(spec, file_type="main.js")
+        code = self._clean_code(code)
         main_path = project_path / "src" / "main.js"
         main_path.write_text(code)
         return str(main_path)
@@ -358,3 +472,287 @@ class AdaptiveApplicationGenerator:
             generated_files["AppTest.java"] = str(test_path)
         
         return generated_files
+    
+    def _generate_setup_scripts(
+        self,
+        project_path: Path,
+        spec: Dict[str, Any],
+        tech_stack: str
+    ) -> Dict[str, str]:
+        """Generate setup scripts for environment initialization"""
+        generated_files = {}
+        tech_stack_lower = tech_stack.lower()
+        app_name = spec.get("name", "app").replace("-", "_")
+        
+        if tech_stack_lower in ["python", "py"]:
+            # Create setup.sh for macOS/Linux
+            setup_sh = f'''#!/bin/bash
+# Setup script for {app_name}
+# Creates and activates virtual environment, installs dependencies
+
+set -e
+
+echo "Setting up {app_name}..."
+
+# Check Python version
+python3 --version || {{ echo "Error: Python 3 is not installed"; exit 1; }}
+
+# Create virtual environment
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv venv
+else
+    echo "Virtual environment already exists"
+fi
+
+# Activate virtual environment
+echo "Activating virtual environment..."
+source venv/bin/activate
+
+# Upgrade pip
+echo "Upgrading pip..."
+pip install --upgrade pip
+
+# Install dependencies
+if [ -f "requirements.txt" ]; then
+    echo "Installing dependencies from requirements.txt..."
+    pip install -r requirements.txt
+fi
+
+echo ""
+echo "✅ Setup complete!"
+echo ""
+echo "To activate the virtual environment, run:"
+echo "  source venv/bin/activate"
+echo ""
+echo "To run the application:"
+echo "  python -m {app_name}"
+echo ""
+'''
+            setup_sh_path = project_path / "setup.sh"
+            setup_sh_path.write_text(setup_sh)
+            setup_sh_path.chmod(0o755)  # Make executable
+            generated_files["setup.sh"] = str(setup_sh_path)
+            
+            # Create setup.bat for Windows
+            setup_bat = f'''@echo off
+REM Setup script for {app_name}
+REM Creates and activates virtual environment, installs dependencies
+
+echo Setting up {app_name}...
+
+REM Check Python version
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo Error: Python is not installed or not in PATH
+    exit /b 1
+)
+
+REM Create virtual environment
+if not exist "venv" (
+    echo Creating virtual environment...
+    python -m venv venv
+) else (
+    echo Virtual environment already exists
+)
+
+REM Activate virtual environment
+echo Activating virtual environment...
+call venv\\Scripts\\activate.bat
+
+REM Upgrade pip
+echo Upgrading pip...
+python -m pip install --upgrade pip
+
+REM Install dependencies
+if exist "requirements.txt" (
+    echo Installing dependencies from requirements.txt...
+    pip install -r requirements.txt
+)
+
+echo.
+echo ✅ Setup complete!
+echo.
+echo To activate the virtual environment, run:
+echo   venv\\Scripts\\activate.bat
+echo.
+echo To run the application:
+echo   python -m {app_name}
+echo.
+pause
+'''
+            setup_bat_path = project_path / "setup.bat"
+            setup_bat_path.write_text(setup_bat)
+            generated_files["setup.bat"] = str(setup_bat_path)
+            
+            # Create SETUP.md with instructions
+            setup_md = f'''# Setup Instructions for {app_name}
+
+## Quick Start (Automated)
+
+### macOS/Linux
+```bash
+./setup.sh
+source venv/bin/activate
+```
+
+### Windows
+```cmd
+setup.bat
+```
+
+## Manual Setup
+
+### Step 1: Create Virtual Environment
+```bash
+python3 -m venv venv
+```
+
+### Step 2: Activate Virtual Environment
+
+**macOS/Linux:**
+```bash
+source venv/bin/activate
+```
+
+**Windows:**
+```cmd
+venv\\Scripts\\activate.bat
+```
+
+### Step 3: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 4: Run the Application
+```bash
+python -m {app_name}
+```
+
+## Virtual Environment
+
+A virtual environment is already created in the `venv` folder. This ensures all dependencies are isolated from your system Python.
+
+### Deactivate Virtual Environment
+```bash
+deactivate
+```
+
+### Remove Virtual Environment (if needed)
+```bash
+rm -rf venv  # macOS/Linux
+rmdir venv   # Windows
+```
+
+## Troubleshooting
+
+**Python not found:** Make sure Python 3.9+ is installed and in your PATH
+```bash
+python3 --version
+```
+
+**Permission denied on setup.sh:** Make it executable
+```bash
+chmod +x setup.sh
+```
+
+**Virtual environment issues:** Delete and recreate
+```bash
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+'''
+            setup_md_path = project_path / "SETUP.md"
+            setup_md_path.write_text(setup_md)
+            generated_files["SETUP.md"] = str(setup_md_path)
+        
+        elif tech_stack_lower in ["nodejs", "node", "javascript", "js", "typescript", "ts"]:
+            # Create setup.sh for npm
+            setup_sh = f'''#!/bin/bash
+# Setup script for {app_name}
+# Installs Node.js dependencies
+
+set -e
+
+echo "Setting up {app_name}..."
+
+# Check Node.js version
+node --version || {{ echo "Error: Node.js is not installed"; exit 1; }}
+
+# Install dependencies
+if [ -f "package.json" ]; then
+    echo "Installing dependencies from package.json..."
+    npm install
+else
+    echo "package.json not found"
+    exit 1
+fi
+
+echo ""
+echo "✅ Setup complete!"
+echo ""
+echo "To run the application:"
+echo "  npm start"
+echo ""
+'''
+            setup_sh_path = project_path / "setup.sh"
+            setup_sh_path.write_text(setup_sh)
+            setup_sh_path.chmod(0o755)
+            generated_files["setup.sh"] = str(setup_sh_path)
+            
+            # Create setup.bat for Windows
+            setup_bat = f'''@echo off
+REM Setup script for {app_name}
+REM Installs Node.js dependencies
+
+echo Setting up {app_name}...
+
+REM Check Node.js version
+node --version >nul 2>&1
+if errorlevel 1 (
+    echo Error: Node.js is not installed or not in PATH
+    exit /b 1
+)
+
+REM Install dependencies
+if exist "package.json" (
+    echo Installing dependencies from package.json...
+    npm install
+) else (
+    echo package.json not found
+    exit /b 1
+)
+
+echo.
+echo ✅ Setup complete!
+echo.
+echo To run the application:
+echo   npm start
+echo.
+pause
+'''
+            setup_bat_path = project_path / "setup.bat"
+            setup_bat_path.write_text(setup_bat)
+            generated_files["setup.bat"] = str(setup_bat_path)
+        
+        return generated_files
+    
+    def _create_venv(self, venv_path: Path) -> None:
+        """Create a Python virtual environment"""
+        import subprocess
+        import sys
+        
+        try:
+            logger.info(f"Creating virtual environment at {venv_path}...")
+            subprocess.run(
+                [sys.executable, "-m", "venv", str(venv_path)],
+                check=True,
+                capture_output=True
+            )
+            logger.info("Virtual environment created successfully")
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Failed to create virtual environment: {e}")
+            logger.info("Virtual environment creation is optional - you can create it manually")

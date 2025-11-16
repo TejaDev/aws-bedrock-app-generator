@@ -8,7 +8,7 @@ class Config:
     """Application configuration"""
     
     # AWS Configuration
-    AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+    AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
     AWS_BEDROCK_MODEL = os.getenv("AWS_BEDROCK_MODEL", "claude-3-5-sonnet-20241022")
     
     # Application Configuration
