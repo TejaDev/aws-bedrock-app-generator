@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bedrock-app-generator
+    
+    # Environment variables - set these before running
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_BEDROCK_MODEL=us.anthropic.claude-3-5-sonnet-20241022-v2:0
+      - LOG_LEVEL=INFO
+      - OUTPUT_DIR=/app/generated_apps
+    
+    # AWS credentials - mount from host or set ENV variables
+    volumes:
+      - ./generated_apps:/app/generated_apps
+      - ~/.aws/credentials:/root/.aws/credentials:ro  # Mount AWS credentials
+    
+    # For interactive use
+    stdin_open: true
+    tty: true
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # Optional: Add a service for testing
+  app-generator-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_BEDROCK_MODEL=us.anthropic.claude-3-5-sonnet-20241022-v2:0
+      - LOG_LEVEL=DEBUG
+    
+    volumes:
+      - ./generated_apps:/app/generated_apps
+      - ~/.aws/credentials:/root/.aws/credentials:ro
+    
+    command: python cli.py --name test_app --requirements "Test application" --stack python
+    
+    profiles:
+      - test
