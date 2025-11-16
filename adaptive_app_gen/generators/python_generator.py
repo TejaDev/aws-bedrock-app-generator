@@ -711,12 +711,23 @@ def main() -> int:
         # Import and run the main application
         from .main import app
         
-        # Run FastAPI app with uvicorn
+        # Import port detection function from main
+        from .main import find_available_port
+        import os
         import uvicorn
+        
+        # Get port from environment or find available one
+        if "PORT" in os.environ:
+            port = int(os.getenv("PORT"))
+        else:
+            port = find_available_port(start_port=8000)
+        
+        host = os.getenv("HOST", "0.0.0.0")
+        logger.info(f"Starting {{app.title}} on {{host}}:{{port}}")
         uvicorn.run(
             app,
-            host="0.0.0.0",
-            port=5000,
+            host=host,
+            port=port,
             log_level="info",
         )
         
@@ -1024,11 +1035,46 @@ async def health() -> Dict[str, str]:
     """Health check endpoint"""
     return {{"status": "healthy", "service": "{app_name}"}}
 
+def find_available_port(start_port: int = 8000, max_attempts: int = 10) -> int:
+    """
+    Find an available port by trying ports sequentially.
+    
+    Args:
+        start_port: Starting port to try (default: 8000)
+        max_attempts: Maximum number of ports to try (default: 10)
+        
+    Returns:
+        An available port number
+    """
+    import socket
+    
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(("0.0.0.0", port))
+            sock.close()
+            return port
+        except OSError:
+            continue
+    
+    # Fallback to OS-assigned port if none available
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(("0.0.0.0", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
+
 if __name__ == "__main__":
     import uvicorn
-    # Get port from environment or use default
-    port = int(os.getenv("PORT", "8000"))
+    
+    # Get port from environment or find available one
+    if "PORT" in os.environ:
+        port = int(os.getenv("PORT"))
+    else:
+        port = find_available_port(start_port=8000)
+    
     host = os.getenv("HOST", "0.0.0.0")
+    logger.info(f"Starting {{app.title}} on {{host}}:{{port}}")
     uvicorn.run(app, host=host, port=port, log_level="info")
 '''
         return main
