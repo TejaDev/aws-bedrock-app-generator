@@ -1,0 +1,571 @@
+================================================================================
+AWS BEDROCK APP GENERATOR - ALL COMMANDS USED IN CHAT
+================================================================================
+Date: November 15, 2025
+Project: https://github.com/TejaDev/aws-bedrock-app-generator
+
+================================================================================
+SECTION 1: INITIAL PROJECT SETUP & DEPENDENCIES
+================================================================================
+
+1. Install boto3 and AWS CLI:
+   pip install boto3 awscli
+
+2. Verify installations:
+   python3 -c "import boto3; print(boto3.__version__)"
+   aws --version
+
+3. Configure AWS credentials:
+   aws configure
+   (Enter: AWS Access Key ID, AWS Secret Access Key, Default region, Output format)
+
+
+================================================================================
+SECTION 2: AWS BEDROCK INTEGRATION & TESTING
+================================================================================
+
+4. Test AWS Bedrock connection:
+   python3 -c "import boto3; client = boto3.client('bedrock-runtime', region_name='us-east-1'); print(client)"
+
+5. Verify model availability:
+   aws bedrock list-foundation-models --region us-east-1
+
+6. Run initial app generator:
+   python3 cli.py --name demo_app --requirements "REST API for user management" --stack python
+
+7. Generate Java application:
+   python3 cli.py --name java_api --requirements "User API service" --stack java
+
+8. List generated applications:
+   ls -la generated_apps/
+
+
+================================================================================
+SECTION 3: PYTHON GENERATOR SETUP & TESTING
+================================================================================
+
+9. Install development dependencies:
+   pip install pytest pytest-cov coverage black flake8 pylint isort mypy sphinx
+
+10. Run Python generator tests:
+    pytest adaptive_app_gen/generators/test_python_generator.py -v
+
+11. Verify Python package structure:
+    tree generated_apps/python_rest_api -L 3
+
+12. Test generated Python package:
+    cd generated_apps/python_rest_api
+    pip install -e .
+    cd -
+
+
+================================================================================
+SECTION 4: JAVA GENERATOR SETUP & TESTING
+================================================================================
+
+13. Check Java version:
+    java -version
+
+14. Verify Maven installation:
+    mvn --version
+
+15. Run Java generator tests:
+    pytest adaptive_app_gen/generators/test_java_generator.py -v
+
+16. Test generated Java project:
+    cd generated_apps/java_user_service
+    mvn clean compile
+    cd -
+
+17. Verify project structure:
+    find generated_apps/java_user_service -type f -name "*.java" | head -10
+
+
+================================================================================
+SECTION 5: PROJECT CLEANUP & STRUCTURE FIXES
+================================================================================
+
+18. Remove generated applications directory:
+    rm -rf generated_apps/
+
+19. Clean Python cache:
+    find . -type d -name __pycache__ -exec rm -rf {} +
+    find . -type f -name "*.pyc" -delete
+    find . -type f -name ".DS_Store" -delete
+
+20. Verify clean project structure:
+    ls -la
+
+
+================================================================================
+SECTION 6: GIT REPOSITORY SETUP
+================================================================================
+
+21. Initialize Git repository:
+    git init
+
+22. Add all files:
+    git add -A
+
+23. Create initial commit:
+    git commit -m "Initial commit: Adaptive Application Generator with AWS Bedrock integration"
+
+24. Add remote repository:
+    git remote add origin https://github.com/TejaDev/aws-bedrock-app-generator.git
+
+25. Push to GitHub:
+    git push -u origin main
+
+
+================================================================================
+SECTION 7: PLATFORM-SPECIFIC SETUP SCRIPTS
+================================================================================
+
+26. Create setup.sh (macOS/Linux):
+    chmod +x setup.sh
+
+27. Test setup script:
+    ./setup.sh
+
+28. Create setup.bat (Windows):
+    # No specific test command (batch execution varies by system)
+
+29. Verify virtual environment:
+    source .venv/bin/activate
+    python3 --version
+    deactivate
+
+
+================================================================================
+SECTION 8: DOCKER CONTAINERIZATION
+================================================================================
+
+30. Build Docker image:
+    docker build -t bedrock-gen:latest .
+
+31. Run container interactively:
+    docker run -it \
+      -v ~/.aws/credentials:/root/.aws/credentials:ro \
+      -v $(pwd)/generated_apps:/app/generated_apps \
+      bedrock-gen:latest
+
+32. Test Docker Compose:
+    docker-compose config
+
+33. Run with Docker Compose:
+    docker-compose up app-generator
+
+
+================================================================================
+SECTION 9: MAKEFILE COMMANDS
+================================================================================
+
+34. Display all Makefile targets:
+    make help
+
+35. Setup environment:
+    make setup
+
+36. Install dependencies:
+    make install
+
+37. Run linting:
+    make lint
+
+38. Format code:
+    make format
+
+39. Run tests:
+    make test
+
+40. Generate Python application:
+    make generate-py
+
+41. Generate Java application:
+    make generate-java
+
+42. Clean project:
+    make clean
+
+43. Build Docker image:
+    make docker-build
+
+44. Run Docker container:
+    make docker-run
+
+45. Push Docker image:
+    make docker-push
+
+
+================================================================================
+SECTION 10: CODE QUALITY & TESTING
+================================================================================
+
+46. Run Python linter:
+    flake8 adaptive_app_gen/ cli.py
+
+47. Format code with Black:
+    black adaptive_app_gen/ cli.py --line-length 100
+
+48. Check imports:
+    isort adaptive_app_gen/ cli.py
+
+49. Run type checking:
+    mypy adaptive_app_gen/ cli.py
+
+50. Run full test suite:
+    pytest -v --cov=adaptive_app_gen --cov-report=html
+
+51. Generate coverage report:
+    coverage report -m
+
+
+================================================================================
+SECTION 11: APPLICATION GENERATION EXAMPLES
+================================================================================
+
+52. Generate Python REST API:
+    python3 cli.py \
+      --name my_api \
+      --requirements "REST API with user authentication and JWT tokens" \
+      --stack python
+
+53. Generate Java Spring Boot service:
+    python3 cli.py \
+      --name payment_service \
+      --requirements "Payment processing service with error handling" \
+      --stack java
+
+54. Generate Node.js Express app:
+    python3 cli.py \
+      --name web_app \
+      --requirements "Web application with database integration" \
+      --stack node.js
+
+55. List all tech stack options:
+    python3 cli.py --help
+
+
+================================================================================
+SECTION 12: AWS BEDROCK THROTTLING MANAGEMENT
+================================================================================
+
+56. Test throttling with retries:
+    python3 -c "
+from adaptive_app_gen.bedrock_client import BedrockClient
+client = BedrockClient()
+result = client.generate_application_spec('Test app', 'test description')
+print(result)
+    "
+
+57. Check inter-request delay:
+    # Configured in bedrock_client.py with 0.5s delay between requests
+
+
+================================================================================
+SECTION 13: DOCUMENTATION & GUIDES
+================================================================================
+
+58. View main README:
+    cat README.md
+
+59. View workplace quick start:
+    cat WORKPLACE_README.md
+
+60. View portability guide:
+    cat PORTABILITY_GUIDE.md
+
+61. View deployment checklist:
+    cat DEPLOYMENT_CHECKLIST.md
+
+62. View implementation guide:
+    cat IMPLEMENTATION_GUIDE.md
+
+63. View throttling guide:
+    cat THROTTLING_GUIDE.md
+
+64. View generator enhancements:
+    cat GENERATOR_ENHANCEMENTS.md
+
+
+================================================================================
+SECTION 14: GIT OPERATIONS & VERSION CONTROL
+================================================================================
+
+65. Check Git status:
+    git status
+
+66. View commit history:
+    git log --oneline
+
+67. View detailed commit:
+    git log -1 --format="%H %s"
+
+68. Add specific files:
+    git add adaptive_app_gen/ cli.py
+
+69. Add documentation files:
+    git add *.md
+
+70. Commit changes:
+    git commit -m "Feature: [description of changes]"
+
+71. Push to GitHub:
+    git push origin main
+
+72. Pull latest changes:
+    git pull origin main
+
+73. View git diff:
+    git diff
+
+74. Stash changes:
+    git stash
+
+75. Apply stashed changes:
+    git stash pop
+
+
+================================================================================
+SECTION 15: ENVIRONMENT VARIABLES & CONFIGURATION
+================================================================================
+
+76. Create .env file:
+    cp .env.example .env
+
+77. View environment template:
+    cat .env.example
+
+78. Source environment variables:
+    source .env
+
+79. Export AWS credentials:
+    export AWS_ACCESS_KEY_ID="your-key"
+    export AWS_SECRET_ACCESS_KEY="your-secret"
+    export AWS_DEFAULT_REGION="us-east-1"
+
+80. Verify environment:
+    echo $AWS_DEFAULT_REGION
+
+
+================================================================================
+SECTION 16: DEPLOYMENT & PORTABILITY
+================================================================================
+
+81. Local deployment (setup.sh):
+    ./setup.sh
+
+82. Docker deployment:
+    docker build -t bedrock-gen .
+    docker run -v ~/.aws/credentials:/root/.aws/credentials:ro bedrock-gen
+
+83. Docker Compose deployment:
+    docker-compose up -d
+
+84. View container logs:
+    docker-compose logs -f app-generator
+
+85. Stop Docker Compose:
+    docker-compose down
+
+
+================================================================================
+SECTION 17: CLEANUP & MAINTENANCE
+================================================================================
+
+86. Remove generated applications:
+    rm -rf generated_apps/
+
+87. Clean Python cache files:
+    find . -type d -name __pycache__ -exec rm -rf {} +
+    find . -type f -name "*.pyc" -delete
+    find . -type d -name ".pytest_cache" -exec rm -rf {} +
+
+88. Remove virtual environment:
+    rm -rf .venv/
+
+89. Clean Docker resources:
+    docker system prune -a
+
+90. Remove specific container:
+    docker rm container_name
+
+91. Remove specific image:
+    docker rmi bedrock-gen:latest
+
+
+================================================================================
+SECTION 18: TROUBLESHOOTING COMMANDS
+================================================================================
+
+92. Check Python version:
+    python3 --version
+
+93. Verify pip installation:
+    pip3 --version
+
+94. List installed packages:
+    pip3 list
+
+95. Check AWS configuration:
+    aws configure list
+
+96. Test AWS Bedrock access:
+    aws bedrock list-foundation-models --region us-east-1
+
+97. Verify Docker installation:
+    docker --version
+    docker-compose --version
+
+98. Check Docker image:
+    docker images bedrock-gen
+
+99. Inspect Docker container:
+    docker inspect container_name
+
+100. View terminal history:
+     history
+
+
+================================================================================
+SECTION 19: ADVANCED OPERATIONS
+================================================================================
+
+101. Create Python virtual environment manually:
+     python3 -m venv .venv
+
+102. Activate virtual environment (macOS/Linux):
+     source .venv/bin/activate
+
+103. Activate virtual environment (Windows):
+     .venv\Scripts\activate
+
+104. Deactivate virtual environment:
+     deactivate
+
+105. Create requirements.txt from installed packages:
+     pip freeze > requirements.txt
+
+106. Install from requirements.txt:
+     pip install -r requirements.txt
+
+107. Install development requirements:
+     pip install -r requirements-dev.txt
+
+
+================================================================================
+SECTION 20: PROJECT CLEANUP & DOCUMENTATION
+================================================================================
+
+108. Remove obsolete markdown files:
+     rm -f FIX_APPLIED.md SETUP_COMPLETE.md INDEX.md PROJECT_OVERVIEW.md
+
+109. Commit cleanup:
+     git add -A
+     git commit -m "cleanup: remove obsolete documentation files"
+
+110. Push cleanup to GitHub:
+     git push origin main
+
+
+================================================================================
+QUICK REFERENCE - MOST USED COMMANDS
+================================================================================
+
+# Setup (one-time)
+./setup.sh                              # or setup.bat on Windows
+aws configure
+
+# Development workflow
+source .venv/bin/activate               # Enter virtual environment
+python3 cli.py --help                   # View available options
+python3 cli.py --name app --requirements "..." --stack python  # Generate app
+make lint                               # Check code quality
+make test                               # Run tests
+deactivate                              # Exit virtual environment
+
+# Using Docker
+docker build -t bedrock-gen .
+docker run -v ~/.aws/credentials:/root/.aws/credentials:ro bedrock-gen
+
+# Git workflow
+git add -A
+git commit -m "message"
+git push origin main
+
+# Makefile shortcuts
+make setup
+make generate-py
+make generate-java
+make clean
+
+
+================================================================================
+ENVIRONMENT SETUP CHECKLIST
+================================================================================
+
+✓ Python 3.9+ installed
+✓ pip and virtual environment support
+✓ AWS account with Bedrock access
+✓ AWS credentials configured (aws configure)
+✓ Docker installed (optional but recommended)
+✓ Git installed and configured
+✓ Clone repository
+✓ Run setup.sh (or setup.bat)
+✓ Verify with: python3 cli.py --help
+
+
+================================================================================
+DEPLOYMENT CHECKLIST
+================================================================================
+
+Before deploying to production:
+✓ Run full test suite: make test
+✓ Run linting: make lint
+✓ Check test coverage: make coverage
+✓ Review README.md and WORKPLACE_README.md
+✓ Follow DEPLOYMENT_CHECKLIST.md
+✓ Verify AWS credentials (no hardcoding)
+✓ Test with Docker: docker build && docker run
+✓ Review generated applications
+✓ Test throttling with multiple requests
+✓ Check logs for errors
+
+
+================================================================================
+USEFUL ALIASES (Optional - Add to ~/.zshrc or ~/.bashrc)
+================================================================================
+
+alias bedrock='python3 cli.py'
+alias bedrock-setup='./setup.sh'
+alias bedrock-docker='docker build -t bedrock-gen . && docker run -it bedrock-gen'
+alias bedrock-test='make test'
+alias bedrock-lint='make lint'
+alias bedrock-gen-py='make generate-py'
+alias bedrock-gen-java='make generate-java'
+alias bedrock-clean='make clean'
+
+
+================================================================================
+GITHUB REPOSITORY
+================================================================================
+
+Repository: https://github.com/TejaDev/aws-bedrock-app-generator
+Main Branch: main
+Clone Command: git clone https://github.com/TejaDev/aws-bedrock-app-generator.git
+
+
+================================================================================
+END OF COMMANDS REFERENCE
+================================================================================
+Last Updated: November 15, 2025
+Total Commands: 110+
+Categories: 20
+
+For more information, refer to:
+- README.md (Main documentation)
+- WORKPLACE_README.md (Team deployment)
+- PORTABILITY_GUIDE.md (All deployment methods)
+- DEPLOYMENT_CHECKLIST.md (Pre-deployment verification)
+
+================================================================================
